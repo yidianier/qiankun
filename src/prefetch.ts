@@ -3,10 +3,10 @@
  * @since 2019-02-26
  */
 
-import { Entry, importEntry } from 'import-html-entry';
-import { noop } from 'lodash';
-import { getMountedApps } from 'single-spa';
-import { Fetch, RegistrableApp } from './interfaces';
+import { Entry, importEntry, ImportEntryOpts } from 'import-html-entry';
+import { isFunction } from 'lodash';
+import { getAppStatus, getMountedApps, NOT_LOADED } from 'single-spa';
+import { AppMetadata, PrefetchStrategy } from './interfaces';
 
 type RequestIdleCallbackHandle = any;
 type RequestIdleCallbackOptions = {
@@ -25,49 +25,107 @@ declare global {
     ) => RequestIdleCallbackHandle;
     cancelIdleCallback: (handle: RequestIdleCallbackHandle) => void;
   }
+
+  interface Navigator {
+    connection: {
+      saveData: boolean;
+      effectiveType: string;
+      type: 'bluetooth' | 'cellular' | 'ethernet' | 'none' | 'wifi' | 'wimax' | 'other' | 'unknown';
+    };
+  }
 }
 
+// RIC and shim for browsers setTimeout() without it
+const requestIdleCallback =
+  window.requestIdleCallback ||
+  function requestIdleCallback(cb: CallableFunction) {
+    const start = Date.now();
+    return setTimeout(() => {
+      cb({
+        didTimeout: false,
+        timeRemaining() {
+          return Math.max(0, 50 - (Date.now() - start));
+        },
+      });
+    }, 1);
+  };
+
+const isSlowNetwork = navigator.connection
+  ? navigator.connection.saveData ||
+    (navigator.connection.type !== 'wifi' &&
+      navigator.connection.type !== 'ethernet' &&
+      /(2|3)g/.test(navigator.connection.effectiveType))
+  : false;
+
 /**
- * 预加载静态资源，不兼容 requestIdleCallback 的浏览器不做任何动作
+ * prefetch assets, do nothing while in mobile network
  * @param entry
- * @param fetch
+ * @param opts
  */
-export function prefetch(entry: Entry, fetch?: Fetch) {
-  const requestIdleCallback = window.requestIdleCallback || noop;
+function prefetch(entry: Entry, opts?: ImportEntryOpts): void {
+  if (!navigator.onLine || isSlowNetwork) {
+    // Don't prefetch if in a slow network or offline
+    return;
+  }
 
   requestIdleCallback(async () => {
-    const { getExternalScripts, getExternalStyleSheets } = await importEntry(entry, { fetch });
+    const { getExternalScripts, getExternalStyleSheets } = await importEntry(entry, opts);
     requestIdleCallback(getExternalStyleSheets);
     requestIdleCallback(getExternalScripts);
   });
 }
 
-export function prefetchAfterFirstMounted(apps: RegistrableApp[], fetch?: Fetch) {
-  window.addEventListener(
-    'single-spa:first-mount',
-    () => {
+function prefetchAfterFirstMounted(apps: AppMetadata[], opts?: ImportEntryOpts): void {
+  window.addEventListener('single-spa:first-mount', function listener() {
+    const notLoadedApps = apps.filter((app) => getAppStatus(app.name) === NOT_LOADED);
+
+    if (process.env.NODE_ENV === 'development') {
       const mountedApps = getMountedApps();
-      const notMountedApps = apps.filter(app => mountedApps.indexOf(app.name) === -1);
+      console.log(`[qiankun] prefetch starting after ${mountedApps} mounted...`, notLoadedApps);
+    }
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`prefetch starting after ${mountedApps} mounted...`, notMountedApps);
-      }
+    notLoadedApps.forEach(({ entry }) => prefetch(entry, opts));
 
-      notMountedApps.forEach(app => prefetch(app.entry, fetch));
-    },
-    { once: true },
-  );
+    window.removeEventListener('single-spa:first-mount', listener);
+  });
 }
 
-export function prefetchAll(apps: RegistrableApp[], fetch?: Fetch) {
-  window.addEventListener(
-    'single-spa:no-app-change',
-    () => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('prefetch starting for all assets...', apps);
-      }
-      apps.forEach(app => prefetch(app.entry, fetch));
-    },
-    { once: true },
-  );
+export function prefetchImmediately(apps: AppMetadata[], opts?: ImportEntryOpts): void {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[qiankun] prefetch starting for apps...', apps);
+  }
+
+  apps.forEach(({ entry }) => prefetch(entry, opts));
+}
+
+export function doPrefetchStrategy(
+  apps: AppMetadata[],
+  prefetchStrategy: PrefetchStrategy,
+  importEntryOpts?: ImportEntryOpts,
+) {
+  const appsName2Apps = (names: string[]): AppMetadata[] => apps.filter((app) => names.includes(app.name));
+
+  if (Array.isArray(prefetchStrategy)) {
+    prefetchAfterFirstMounted(appsName2Apps(prefetchStrategy as string[]), importEntryOpts);
+  } else if (isFunction(prefetchStrategy)) {
+    (async () => {
+      // critical rendering apps would be prefetch as earlier as possible
+      const { criticalAppNames = [], minorAppsName = [] } = await prefetchStrategy(apps);
+      prefetchImmediately(appsName2Apps(criticalAppNames), importEntryOpts);
+      prefetchAfterFirstMounted(appsName2Apps(minorAppsName), importEntryOpts);
+    })();
+  } else {
+    switch (prefetchStrategy) {
+      case true:
+        prefetchAfterFirstMounted(apps, importEntryOpts);
+        break;
+
+      case 'all':
+        prefetchImmediately(apps, importEntryOpts);
+        break;
+
+      default:
+        break;
+    }
+  }
 }

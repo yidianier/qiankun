@@ -1,33 +1,50 @@
 {
   "name": "qiankun",
-  "version": "1.3.5",
+  "version": "2.3.2",
   "description": "An completed implementation of Micro Frontends",
   "keywords": [
     "micro frontend",
     "microfrontend",
-    "micro frontends"
+    "micro frontends",
+    "micro-frontend",
+    "micro-frontends",
+    "microservice"
   ],
   "main": "./lib/index.js",
   "module": "./es/index.js",
   "types": "./es/index.d.ts",
   "sideEffects": false,
   "scripts": {
-    "start": "concurrently \"yarn start:main\" \"yarn start:react16\" \"yarn start:react15\" \"yarn start:vue\"",
-    "install:examples": "yarn build && cd examples/main && yarn && cd ../react16 && yarn && cd ../react15 && yarn && cd ../vue && yarn",
+    "examples:install": "npm-run-all --serial build install:*",
+    "examples:start": "npm-run-all --parallel start:*",
+    "examples:start-multiple": "run-p start:main-multiple start:react15 start:vue",
+    "install:main": "cd examples/main && yarn",
     "start:main": "cd examples/main && yarn start",
+    "start:main-multiple": "cd examples/main && yarn start:multiple",
+    "install:react16": "cd examples/react16 && yarn",
     "start:react16": "cd examples/react16 && yarn start",
+    "install:react15": "cd examples/react15 && yarn",
     "start:react15": "cd examples/react15 && yarn start",
+    "install:vue": "cd examples/vue && yarn",
     "start:vue": "cd examples/vue && yarn start",
-    "start:cra": "cd examples/cra && npm start",
+    "install:angular9": "cd examples/angular9 && yarn",
+    "start:angular9": "cd examples/angular9 && yarn serve:qiankun",
+    "install:purehtml": "cd examples/purehtml && yarn",
+    "start:purehtml": "cd examples/purehtml && yarn start",
+    "install:vue3": "cd examples/vue3 && yarn",
+    "start:vue3": "cd examples/vue3 && yarn start",
     "build": "father-build",
     "release": "np --no-cleanup --yolo --no-publish",
-    "prepublishOnly": "yarn lint && yarn build",
+    "prepublishOnly": "yarn lint && yarn test && yarn build",
     "lint": "yarn lint:js && yarn lint:prettier",
     "lint:js": "eslint --cache --ext .js,.jsx,.ts,.tsx --format=pretty ./src",
     "lint:fix": "yarn lint:js -- --fix",
-    "lint:prettier": "check-prettier lint",
-    "prettier": "prettier -c --write **/*",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint:prettier": "prettier -c ./src/**/*",
+    "prettier": "prettier --write ./src/**/*",
+    "docs:dev": "dumi dev",
+    "docs:build": "dumi build",
+    "ci": "yarn lint && yarn test",
+    "test": "cross-env NODE_ENV=test jest"
   },
   "repository": {
     "type": "git",
@@ -45,40 +62,68 @@
   },
   "homepage": "https://github.com/kuitos/qiankun#readme",
   "dependencies": {
-    "@babel/runtime": "^7.5.5",
-    "import-html-entry": "^1.3.4",
+    "@babel/runtime": "^7.10.5",
+    "import-html-entry": "^1.9.0",
     "lodash": "^4.17.11",
-    "single-spa": "^4.3.4",
+    "single-spa": "5.8.1",
     "tslib": "^1.10.0"
   },
   "devDependencies": {
+    "@types/jest": "^25.1.4",
     "@types/lodash": "^4.14.129",
     "@types/vfile-message": "1.x",
-    "@umijs/fabric": "^1.1.10",
+    "@umijs/fabric": "^2.0.7",
     "babel-plugin-import": "^1.12.1",
-    "check-prettier": "^1.0.3",
-    "concurrently": "^4.1.2",
+    "cross-env": "^7.0.2",
+    "dumi": "^1.1.0-beta.24",
     "father-build": "^1.7.0",
     "husky": "^2.3.0",
+    "jest": "^25.2.2",
+    "levenary": "^1.1.1",
     "lint-staged": "^9.4.2",
     "np": "^5.0.3",
-    "prettier": "^1.18.2",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^2.1.2",
     "rimraf": "^3.0.0",
-    "typescript": "^3.4.5"
+    "ts-jest": "^25.2.1",
+    "typescript": "^4.1.2"
+  },
+  "resolutions": {
+    "@types/react": "^16.x"
   },
   "husky": {
     "hooks": {
-      "pre-commit": "lint-staged"
+      "pre-commit": "lint-staged",
+      "pre-push": "yarn test"
     }
   },
   "lint-staged": {
     "**/*.{js,ts,json,css,md}": [
-      "yarn prettier",
-      "git add"
+      "prettier -w"
     ],
     "**/*.{js,ts}": [
-      "yarn lint:fix",
-      "git add"
+      "yarn lint:fix"
+    ]
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "ts"
+    ],
+    "testMatch": [
+      "<rootDir>/src/**/__tests__/**/*.test.ts"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/fixtures/"
+    ],
+    "transform": {
+      "^.+\\.ts$": "<rootDir>/node_modules/ts-jest"
+    },
+    "coveragePathIgnorePatterns": [
+      "/node_modules/",
+      "/__tests__/",
+      "/dist/"
     ]
   }
 }

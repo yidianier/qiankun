@@ -1,90 +1,114 @@
+import { registerMicroApps, runAfterFirstMounted, setDefaultMountApp, start, initGlobalState } from '../../es';
+import './index.less';
+
+// for angular subapp
+import 'zone.js';
+
 /**
- * @author Kuitos
- * @since 2019-05-16
+ * 主应用 **可以使用任意技术栈**
+ * 以下分别是 React 和 Vue 的示例，可切换尝试
  */
+import render from './render/ReactRender';
+// import render from './render/VueRender';
 
-import fetch from 'isomorphic-fetch';
-import React from 'react';
-import ReactDOM from 'react-dom';
-// import Vue from 'vue';
-import { registerMicroApps, runAfterFirstMounted, setDefaultMountApp, start } from '../../es';
-import Framework from './Framework';
-// import Framework from './Framework.vue';
-
-// let app = null;
-
-function render({ appContent, loading }) {
-  /*
-  examples for vue
-   */
-  // if (!app) {
-  //   app = new Vue({
-  //     el: '#container',
-  //     data() {
-  //       return {
-  //         content: appContent,
-  //         loading,
-  //       };
-  //     },
-  //     render(h) {
-  //       return h(Framework, {
-  //         props: {
-  //           content: this.content,
-  //           loading: this.loading,
-  //         },
-  //       });
-  //     },
-  //   });
-  // } else {
-  //   app.content = appContent;
-  //   app.loading = loading;
-  // }
-
-  const container = document.getElementById('container');
-  ReactDOM.render(<Framework loading={loading} content={appContent} />, container);
-}
-
-function genActiveRule(routerPrefix) {
-  return location => location.pathname.startsWith(routerPrefix);
-}
-
+/**
+ * Step1 初始化应用（可选）
+ */
 render({ loading: true });
 
-// support custom fetch see: https://github.com/kuitos/import-html-entry/blob/91d542e936a74408c6c8cd1c9eebc5a9f83a8dc0/src/index.js#L163
-const request = url =>
-  fetch(url, {
-    referrerPolicy: 'origin-when-cross-origin',
-  });
+const loader = loading => render({ loading });
+
+/**
+ * Step2 注册子应用
+ */
 
 registerMicroApps(
   [
-    { name: 'react app', entry: '//localhost:7100', render, activeRule: genActiveRule('/react') },
-    { name: 'react15 app', entry: '//localhost:7102', render, activeRule: genActiveRule('/15react15') },
-    { name: 'vue app', entry: '//localhost:7101', render, activeRule: genActiveRule('/vue') },
+    {
+      name: 'react16',
+      entry: '//localhost:7100',
+      container: '#subapp-viewport',
+      loader,
+      activeRule: '/react16',
+    },
+    {
+      name: 'react15',
+      entry: '//localhost:7102',
+      container: '#subapp-viewport',
+      loader,
+      activeRule: '/react15',
+    },
+    {
+      name: 'vue',
+      entry: '//localhost:7101',
+      container: '#subapp-viewport',
+      loader,
+      activeRule: '/vue',
+    },
+    {
+      name: 'angular9',
+      entry: '//localhost:7103',
+      container: '#subapp-viewport',
+      loader,
+      activeRule: '/angular9',
+    },
+    {
+      name: 'purehtml',
+      entry: '//localhost:7104',
+      container: '#subapp-viewport',
+      loader,
+      activeRule: '/purehtml',
+    },
+    {
+      name: 'vue3',
+      entry: '//localhost:7105',
+      container: '#subapp-viewport',
+      loader,
+      activeRule: '/vue3',
+    },
   ],
   {
     beforeLoad: [
       app => {
-        console.log('before load', app);
+        console.log('[LifeCycle] before load %c%s', 'color: green;', app.name);
       },
     ],
     beforeMount: [
       app => {
-        console.log('before mount', app);
+        console.log('[LifeCycle] before mount %c%s', 'color: green;', app.name);
       },
     ],
     afterUnmount: [
       app => {
-        console.log('after unload', app);
+        console.log('[LifeCycle] after unmount %c%s', 'color: green;', app.name);
       },
     ],
   },
-  {
-    fetch: request,
-  },
 );
 
-setDefaultMountApp('/react');
-runAfterFirstMounted(() => console.info('first app mounted'));
+const { onGlobalStateChange, setGlobalState } = initGlobalState({
+  user: 'qiankun',
+});
 
-start({ prefetch: true, fetch: request });
+onGlobalStateChange((value, prev) => console.log('[onGlobalStateChange - master]:', value, prev));
+
+setGlobalState({
+  ignore: 'master',
+  user: {
+    name: 'master',
+  },
+});
+
+/**
+ * Step3 设置默认进入的子应用
+ */
+setDefaultMountApp('/react16');
+
+/**
+ * Step4 启动应用
+ */
+start();
+
+runAfterFirstMounted(() => {
+  console.log('[MainApp] first app mounted');
+});

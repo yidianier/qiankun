@@ -6,14 +6,13 @@
     "antd": "^3.25.2",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
-    "react-router-dom": "^5.1.2",
-    "react-scripts": "3.2.0"
+    "react-router-dom": "^5.1.2"
   },
   "scripts": {
-    "start": "react-app-rewired start",
-    "build": "react-app-rewired build",
-    "test": "react-app-rewired test",
-    "eject": "react-app-rewired eject"
+    "start": "rescripts start",
+    "build": "rescripts build",
+    "test": "rescripts test",
+    "eject": "rescripts eject"
   },
   "browserslist": {
     "production": [
@@ -28,6 +27,7 @@
     ]
   },
   "devDependencies": {
-    "react-app-rewired": "^2.1.5"
+    "@rescripts/cli": "^0.0.14",
+    "react-scripts": "^3.4.1"
   }
 }

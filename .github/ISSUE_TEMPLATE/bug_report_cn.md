@@ -6,6 +6,8 @@ labels: ''
 assignees: ''
 ---
 
+# 提问之前强烈建立您能先阅读一下[《提问的智慧》](https://github.com/ryanhanwu/How-To-Ask-Questions-The-Smart-Way/blob/master/README-zh_CN.md)
+
 <!--
 感谢您向我们反馈问题，为了高效的解决问题，我们期望你能提供以下信息：
 -->
@@ -16,7 +18,7 @@ assignees: ''
 
 ## 最小可复现仓库
 
-<!-- 为节约大家的时间，无复现步骤的 ISSUE 会被关闭，提供之后再 REOPEN -->
+为节约大家的时间，无复现步骤的 ISSUE 会被关闭，提供之后再 REOPEN
 <!-- https://github.com/YOUR_REPOSITORY_URL -->
 
 ## 复现步骤，错误日志以及相关配置
@@ -26,6 +28,6 @@ assignees: ''
 
 ## 相关环境信息
 
+- **qiankun 版本**
 - **浏览器版本**：
 - **操作系统**：
-- **Node 版本**：

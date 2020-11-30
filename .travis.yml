@@ -1,11 +1,15 @@
 language: node_js
 node_js:
-  - 8
+  - lts/*
+install:
+  - yarn install
 cache:
+  yarn: true
   directories:
     - node_modules
 script:
-  - npm run lint
+  - yarn ci
+  - yarn docs:build
 
 #after_success:
 #  - npm run codecov
@@ -20,10 +24,19 @@ before_deploy: |
   }
 
 deploy:
-  provider: npm
-  email: kuitos.lau@gmail.com
-  api_key: $NPM_AUTH_TOKEN
-  skip_cleanup: true
-  on:
-    tags: true
-  tag: $(npm_dist_tag)
+  - edge: true
+    provider: npm
+    email: kuitos.lau@gmail.com
+    api_key: $NPM_AUTH_TOKEN
+    skip_cleanup: true
+    on:
+      tags: true
+    tag: $(npm_dist_tag)
+
+  - provider: pages
+    skip_cleanup: true
+    local_dir: dist
+    github_token: $GITHUB_TOKEN
+    keep_history: true
+    on:
+      branch: master
